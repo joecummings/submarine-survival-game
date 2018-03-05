@@ -15,6 +15,8 @@ include lines.inc
 include trig.inc
 include blit.inc
 include game.inc
+include Z:\Users\joecummings\wine-masm\drive_c\masm32\include\masm32.inc
+includelib Z:\Users\joecummings\wine-masm\drive_c\masm32\lib\masm32.lib
 
 ;; Has keycodes
 include keys.inc
@@ -23,8 +25,8 @@ include keys.inc
 .DATA
 ;; declaring variables in memory to be used later in the program
 
-  submarineX DWORD 150
-  submarineY DWORD 150 
+  submarineX DWORD 100
+  submarineY DWORD 100 
   submarineAddr DWORD offset submarine
   
   ; submarine1X DWORD 300
@@ -35,12 +37,19 @@ include keys.inc
   torpedoY DWORD 150
   torpedoAddr DWORD offset torpedo
   
-  octopusX DWORD 300
-  octopusY DWORD 350
+  octopusX DWORD 700
+  octopusY DWORD 245
   octopusAddr DWORD offset octopus
   
   ;; message to be displayed upon losing
-  loseString BYTE "You lose!", 0
+  loseString BYTE "You lose! Press R to restart the game", 0
+  
+  ;; Instructions
+  pauseString BYTE "Press U to resume the game at any time", 0
+  arrowString BYTE "Use W,A,S,D to navigate the submarine", 0
+  
+  pauseFlag DWORD 0
+  loseFlag DWORD 0
   
   ;; how much to rotate by
   rotation DWORD 0h
@@ -129,10 +138,16 @@ CheckIntersect ENDP
 
 GameInit PROC
   ;; how will the screen look initially
+  mov pauseFlag, 0
+  mov loseFlag, 0
   mov eax, offset submarine
   invoke BasicBlit, submarineAddr, submarineX, submarineY
   ; invoke BasicBlit, torpedoAddr, torpedoX, torpedoY
   ; invoke BasicBlit, submarine1Addr, submarine1X, submarine1Y
+  rdtsc
+  invoke nseed, eax
+  invoke nrandom, 450
+  mov octopusY, eax
   invoke BasicBlit, octopusAddr, octopusX, octopusY
 	
 	ret         ;; Do not delete this line!!!
@@ -140,18 +155,32 @@ GameInit ENDP
 
 
 GamePlay PROC USES ebx
+
+  mov eax, 0
+  cmp pauseFlag, eax
+  jne pause_play
   
-;; have the octopus spinning endlessly
+  cmp loseFlag, eax
+  jne lose
+  ;; have the octopus spinning endlessly
   add rotation, 00003000h
+  sub octopusX, 1
 
 try_mouse_stuff:
-  mov eax, MouseStatus.buttons  ;; detecting mouse input
-  cmp eax, 0001h
+  ; mov eax, MouseStatus.buttons  ;; detecting mouse input
+  mov eax, KeyDown
+  cmp eax, 50h
   jne try_the_keys
-  mov eax, MouseStatus.horiz
-  mov octopusX, eax       ;; moving the octopus X based on mouse
-  mov eax, MouseStatus.vert
-  mov octopusY, eax   ;; moving the octopus Y based on mouse
+  
+pause_play:
+  mov pauseFlag, 1
+  invoke BlackStarField
+  invoke DrawStr, offset pauseString, 175, 225, 0ffh
+  mov eax, KeyDown  ;; detecting mouse input
+  cmp eax, 55h
+  jne done
+  mov pauseFlag, 0
+  jmp done
 
 try_the_keys:
   mov eax, KeyPress   ;; detecting key press
@@ -161,13 +190,13 @@ try_the_keys:
   
 ;; submarine movement
 sub_sub:
-  cmp eax, 25h    ;; left arrow
+  cmp eax, 41h    ;; A (go left)
   je go_left
-  cmp eax, 27h    ;; right arrow
+  cmp eax, 44h    ;; D (go right)
   je go_right
-  cmp eax, 26h    ;; up arrow
+  cmp eax, 57h    ;; W (go up)
   je go_up
-  cmp eax, 28h    ;; down arrow
+  cmp eax, 53h    ;; S (go down)
   je go_down
   jmp draw_that_ish
 
@@ -198,13 +227,24 @@ draw_that_ish:
   invoke RotateBlit, octopusAddr, octopusX, octopusY, rotation    ;; new position of spinning octopus
   ; invoke CheckIntersect, torpedoX, torpedoY, torpedoAddr, octopusX, octopusY, octopusAddr
   invoke CheckIntersect, submarineX, submarineY, submarineAddr, octopusX, octopusY, octopusAddr   ;; checking whether the two are colliding
-  
   cmp eax, 0
   je done
-  ;; oh snap it is colliding
-  invoke BlackStarField     
-  invoke DrawStr, offset loseString, 25, 25, 0ffh   ;; display losing message
-  
+  mov loseFlag, 1
+lose:
+  invoke BlackStarField       ;; oh snap it is colliding
+  invoke DrawStr, offset loseString, 175, 225, 0ffh   ;; display losing message
+  add octopusX, 1   ;; stop the octopus movement
+  mov eax, KeyPress
+  cmp eax, 52h
+  je restart
+  jmp done
+
+restart:
+  mov octopusX, 700     ;; reset octopus
+  mov submarineX, 100   ;; reset submarine
+  mov submarineY, 100     
+  invoke GameInit
+
 done:
   ret         ;; Do not delete this line!!!
 GamePlay ENDP
