@@ -70,6 +70,7 @@ include keys.inc
   pauseFlag DWORD 0
   loseFlag DWORD 0
   torpedosAwayFlag DWORD 0
+  speedFlag DWORD 1
 
   ;; how much to rotate by
   rotation DWORD 0h
@@ -165,12 +166,12 @@ BackgroundBitmap PROC
 ; create the background bitmap (football field)
 	invoke BasicBlit, underwaterleftAddr, underwaterleftX, underwaterleftY 			;; creates the left side of the field based on coordinates given
 	mov ebx, underwaterleftX				;; moves the left side of the field's location to ebx
-	sub ebx, 2 							;; subtracts 5 from the location of the left side to make it scroll right
+	sub ebx, speedFlag 							;; subtracts 5 from the location of the left side to make it scroll right
 	mov underwaterleftX, ebx				;; moves the subtraction back to the x location
 
 	invoke BasicBlit, underwaterrightAddr, underwaterrightX, underwaterrightY			;; creates the right side of the field based on coordinates given
 	mov ebx, underwaterrightX				;; moves the right side of the field's location to ebx
-	sub ebx, 2						;; subtracts 5 from the location of the right side to make it scroll right
+	sub ebx, speedFlag						;; subtracts 5 from the location of the right side to make it scroll right
 	mov underwaterrightX, ebx				;; moves the subtraction back to the x location
 
 	cmp underwaterleftX, -420				;; compares the left side of the field's x value to -340 (when it is about to exit the screen)
@@ -204,6 +205,8 @@ VarToStr ENDP
 
 GameInit PROC
   ;; how will the screen look initially
+  mov score, 0
+  mov speedFlag, 1
   mov pauseFlag, 0
   mov loseFlag, 0
   mov torpedosAwayFlag, 0
@@ -257,16 +260,17 @@ try_the_keys:
 
   ;; the torpedo has been fired
 damn_the_torpedos:
-  add torpedoX, 8   ;; making the torpedo move quickly
+  add torpedoX, 10   ;; making the torpedo move quickly
 
 body:
   ;; have the octopus spinning endlessly
   add rotation, 00003000h
-  sub octopusX, 1
-  sub octopus1X, 1
-  sub octopus2X, 1
-  sub octopus3X, 1
-  sub octopus4X, 1
+  mov eax, speedFlag
+  sub octopusX, eax
+  sub octopus1X, eax
+  sub octopus2X, eax
+  sub octopus3X, eax
+  sub octopus4X, eax
 
 pause_it:
   mov eax, KeyDown
@@ -298,22 +302,22 @@ sub_sub:
   jmp draw_that_ish
 
 go_left:
-  mov eax, 4
+  mov eax, 6
   sub submarineX, eax
   jmp draw_that_ish
 
 go_right:
-  mov eax, 4
+  mov eax, 6
   add submarineX, eax
   jmp draw_that_ish
 
 go_down:
-  mov eax, 4
+  mov eax, 6
   add submarineY, eax
   jmp draw_that_ish
 
 go_up:
-  mov eax, 4
+  mov eax, 6
   sub submarineY, eax
   jmp draw_that_ish
 
@@ -354,6 +358,7 @@ next4:
   je submarine_intersect
   jmp octopus3_go_boom
 octopus_go_boom:
+  inc speedFlag
   mov eax, 10
   add score, eax
   invoke nrandom, 450
@@ -363,6 +368,7 @@ octopus_go_boom:
   jmp reset_torpedo
 
 octopus1_go_boom:
+  inc speedFlag
   mov eax, 10
   add score, eax
   invoke nrandom, 450
@@ -372,6 +378,7 @@ octopus1_go_boom:
   jmp reset_torpedo
 
 octopus2_go_boom:
+  inc speedFlag
   mov eax, 10
   add score, eax
   invoke nrandom, 450
@@ -381,6 +388,7 @@ octopus2_go_boom:
   jmp reset_torpedo
 
 octopus3_go_boom:
+  inc speedFlag
   mov eax, 10
   add score, eax
   invoke nrandom, 450
@@ -390,6 +398,7 @@ octopus3_go_boom:
   jmp reset_torpedo
 
 octopus4_go_boom:
+  inc speedFlag
   mov eax, 10
   add score, eax
   invoke nrandom, 450
@@ -406,6 +415,43 @@ reset_torpedo:
   mov torpedosAwayFlag, 0
 
 submarine_intersect:
+
+check_if_octopus_gone:
+  mov ebx, octopusX
+  cmp ebx, 0
+  jge oct1_gone
+  mov octopusX, 850
+  invoke nrandom, 450
+  mov octopusY, eax
+oct1_gone:
+  mov ebx, octopus1X
+  cmp ebx, 0
+  jge oct2_gone
+  mov octopus1X, 850
+  invoke nrandom, 450
+  mov octopus1Y, eax
+oct2_gone:
+  mov ebx, octopus2X
+  cmp ebx, 0
+  jge oct3_gone
+  mov octopus2X, 850
+  invoke nrandom, 450
+  mov octopus2Y, eax
+oct3_gone:
+  mov ebx, octopus3X
+  cmp ebx, 0
+  jge oct4_gone
+  mov octopus3X, 850
+  invoke nrandom, 450
+  mov octopus3Y, eax
+oct4_gone:
+  mov ebx, octopus4X
+  cmp ebx, 0
+  jge check_if_torpedo_gone
+  mov octopus4X, 850
+  invoke nrandom, 450
+  mov octopus4Y, eax
+
 
 check_if_torpedo_gone:
   mov ebx, torpedoX
