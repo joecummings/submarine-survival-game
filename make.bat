@@ -73,8 +73,12 @@ ml /I%MASMINCPATH% /c /coff /Cp underwaterleft.asm
 
 if %errorlevel% neq 0 goto :error
 
+ml /I%MASMINCPATH% /c /coff /Cp underwater.asm
 
-link /SUBSYSTEM:WINDOWS  /LIBPATH:%MASMLIBPATH% game.obj blit.obj trig.obj submarine.obj torpedo.obj octopus.obj underwaterleft.obj lines.obj stars.obj libgame.obj
+if %errorlevel% neq 0 goto :error
+
+
+link /SUBSYSTEM:WINDOWS  /LIBPATH:%MASMLIBPATH% game.obj blit.obj trig.obj submarine.obj torpedo.obj octopus.obj underwaterleft.obj underwater.obj lines.obj stars.obj libgame.obj
 
 if %errorlevel% neq 0 goto :error
 
