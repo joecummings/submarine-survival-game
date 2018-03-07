@@ -29,10 +29,6 @@ include keys.inc
   submarineY DWORD 100
   submarineAddr DWORD offset submarine
 
-  ; submarine1X DWORD 300
-  ; submarine1Y DWORD 150
-  ; submarine1Addr DWORD offset submarine
-
   torpedoX DWORD 150
   torpedoY DWORD 150
   torpedoAddr DWORD offset torpedo
@@ -40,6 +36,14 @@ include keys.inc
   octopusX DWORD 700
   octopusY DWORD 245
   octopusAddr DWORD offset octopus
+
+  underwaterleftX DWORD 200
+  underwaterleftY DWORD 215
+  underwaterleftAddr DWORD offset underwaterleft
+
+  underwaterrightX DWORD 950
+  underwaterrightY DWORD 215
+  underwaterrightAddr DWORD offset underwaterleft
 
   ;; message to be displayed upon losing
   loseString BYTE "You lose! Press R to restart the game", 0
@@ -138,12 +142,42 @@ done:
   ret
 CheckIntersect ENDP
 
+BackgroundBitmap PROC
+
+; create the background bitmap (football field)
+	invoke BasicBlit, underwaterleftAddr, underwaterleftX, underwaterleftY 			;; creates the left side of the field based on coordinates given
+	mov ebx, underwaterleftX				;; moves the left side of the field's location to ebx
+	sub ebx, 5 							;; subtracts 5 from the location of the left side to make it scroll right
+	mov underwaterleftX, ebx				;; moves the subtraction back to the x location
+
+	invoke BasicBlit, underwaterrightAddr, underwaterrightX, underwaterrightY			;; creates the right side of the field based on coordinates given
+	mov ebx, underwaterrightX				;; moves the right side of the field's location to ebx
+	sub ebx, 5							;; subtracts 5 from the location of the right side to make it scroll right
+	mov underwaterrightX, ebx				;; moves the subtraction back to the x location
+
+	cmp underwaterleftX, -340				;; compares the left side of the field's x value to -340 (when it is about to exit the screen)
+	jnle next								;; if it is not equal to -340, it is not about to leave the screen, continue
+	mov ebx, 950							;; if it is equal, move the x value to be 950 (cycles it to the right)
+	mov underwaterleftX, ebx
+
+next:
+	cmp underwaterrightX, -340				;; compares the right side of the field's x value to -340 (when it is about to exit the screen)
+	jnle away								;; if it is not equal to -340, it is not about to leave the screen, continue
+	mov ecx, 950							;; if it is equal, move the x value to be 1600 (cycles it to the right)
+	mov underwaterrightX, ecx
+
+away:
+
+	ret
+BackgroundBitmap ENDP
+
 GameInit PROC
   ;; how will the screen look initially
   mov pauseFlag, 0
   mov loseFlag, 0
   mov torpedosAwayFlag, 0
   mov eax, offset submarine
+  invoke BackgroundBitmap
   invoke BasicBlit, submarineAddr, submarineX, submarineY
 
   rdtsc
@@ -236,7 +270,9 @@ go_up:
   jmp draw_that_ish
 
 draw_that_ish:
-  invoke BlackStarField   ;; clear screen
+  invoke BlackStarField
+  ; invoke BasicBlit, underwaterleftAddr, underwaterleftX, underwaterleftY   ;; clear screen
+  invoke BackgroundBitmap
   invoke BasicBlit, torpedoAddr, torpedoX, torpedoY
   invoke BasicBlit, submarineAddr, submarineX, submarineY   ;; new position and drawing of submarine
   invoke RotateBlit, octopusAddr, octopusX, octopusY, rotation    ;; new position of spinning octopus
