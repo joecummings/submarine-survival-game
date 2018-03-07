@@ -8,7 +8,7 @@ echo off
 
 :: make sure you add the path to ml.exe and link.exe
 :: if you are using windows machine, it is normally C:\masm32\bin
-:: if you are using wine on Mac, it may be under your virtual C drive. 
+:: if you are using wine on Mac, it may be under your virtual C drive.
 :: one way to check that is to run cmd.exe (on Mac, run "wine cmd.exe")
 :: go to the directory contains ml.exe and link.exe
 :: and type "echo %cd%" to get the full path
@@ -57,20 +57,28 @@ if %errorlevel% neq 0 goto :error
 
 :: ml /c /coff /Cp submarine.asm || goto :error
 
-ml /I%MASMINCPATH% /c /coff /Cp submarine.asm 
+ml /I%MASMINCPATH% /c /coff /Cp submarine.asm
 
 if %errorlevel% neq 0 goto :error
 
-ml /I%MASMINCPATH% /c /coff /Cp torpedo.asm 
+ml /I%MASMINCPATH% /c /coff /Cp torpedo.asm
 
 if %errorlevel% neq 0 goto :error
 
-ml /I%MASMINCPATH% /c /coff /Cp octopus.asm 
+ml /I%MASMINCPATH% /c /coff /Cp octopus.asm
+
+if %errorlevel% neq 0 goto :error
+
+ml /I%MASMINCPATH% /c /coff /Cp underwaterleft.asm
+
+if %errorlevel% neq 0 goto :error
+
+ml /I%MASMINCPATH% /c /coff /Cp underwater.asm
 
 if %errorlevel% neq 0 goto :error
 
 
-link /SUBSYSTEM:WINDOWS  /LIBPATH:%MASMLIBPATH% game.obj blit.obj trig.obj submarine.obj torpedo.obj octopus.obj lines.obj stars.obj libgame.obj
+link /SUBSYSTEM:WINDOWS  /LIBPATH:%MASMLIBPATH% game.obj blit.obj trig.obj submarine.obj torpedo.obj octopus.obj underwaterleft.obj underwater.obj lines.obj stars.obj libgame.obj
 
 if %errorlevel% neq 0 goto :error
 
@@ -82,4 +90,3 @@ goto :EOF
 :error
 echo Failed with error #%errorlevel%
 pause
-
