@@ -21,14 +21,14 @@ includelib Z:\Users\joecummings\wine-masm\drive_c\masm32\lib\masm32.lib
 ;; Has keycodes
 include keys.inc
 
-	
+
 .DATA
 ;; declaring variables in memory to be used later in the program
 
   submarineX DWORD 100
-  submarineY DWORD 100 
+  submarineY DWORD 100
   submarineAddr DWORD offset submarine
-  
+
   ; submarine1X DWORD 300
   ; submarine1Y DWORD 150
   ; submarine1Addr DWORD offset submarine
@@ -36,31 +36,33 @@ include keys.inc
   torpedoX DWORD 150
   torpedoY DWORD 150
   torpedoAddr DWORD offset torpedo
-  
+
   octopusX DWORD 700
   octopusY DWORD 245
   octopusAddr DWORD offset octopus
-  
+
   ;; message to be displayed upon losing
   loseString BYTE "You lose! Press R to restart the game", 0
-  
+
   ;; Instructions
   pauseString BYTE "Press U to resume the game at any time", 0
   arrowString BYTE "Use W,A,S,D to navigate the submarine", 0
-  
+
+  ;; flags for instructions
   pauseFlag DWORD 0
   loseFlag DWORD 0
-  
+  torpedosAwayFlag DWORD 0
+
   ;; how much to rotate by
   rotation DWORD 0h
-  
+
 .CODE
-	
+
 ;; Check if two bitmaps are colliding
 CheckIntersect PROC STDCALL USES ebx esi ecx oneX:DWORD, oneY:DWORD, oneBitmap:PTR EECS205BITMAP, twoX:DWORD, twoY:DWORD, twoBitmap:PTR EECS205BITMAP
 
   LOCAL x_right:DWORD, x_left:DWORD, y_down:DWORD, y_up:DWORD, bit_right:PTR EECS205BITMAP, bit_left:PTR EECS205BITMAP, bit_up:PTR EECS205BITMAP, bit_down:PTR EECS205BITMAP
-  
+
   mov eax, oneX
   mov ebx, twoX
   mov esi, oneBitmap
@@ -85,7 +87,7 @@ continue:
   mov ecx, twoBitmap
   cmp eax, ebx
   jl assign_otherY
-  mov y_down, eax   ;; set oney to be above 
+  mov y_down, eax   ;; set oney to be above
   mov bit_down, esi
   mov y_up, ebx   ;; set twoy to be below
   mov bit_up, ecx
@@ -95,7 +97,7 @@ assign_otherY:
   mov bit_down, ecx
   mov y_up, eax   ;; set oney to be below
   mov bit_up, esi
-  
+
 continue_2:
   mov ebx, bit_right
   mov eax, (EECS205BITMAP PTR [ebx]).dwWidth
@@ -140,38 +142,56 @@ GameInit PROC
   ;; how will the screen look initially
   mov pauseFlag, 0
   mov loseFlag, 0
+  mov torpedosAwayFlag, 0
   mov eax, offset submarine
   invoke BasicBlit, submarineAddr, submarineX, submarineY
-  ; invoke BasicBlit, torpedoAddr, torpedoX, torpedoY
-  ; invoke BasicBlit, submarine1Addr, submarine1X, submarine1Y
+
   rdtsc
   invoke nseed, eax
   invoke nrandom, 450
   mov octopusY, eax
   invoke BasicBlit, octopusAddr, octopusX, octopusY
-	
+
 	ret         ;; Do not delete this line!!!
 GameInit ENDP
-
 
 GamePlay PROC USES ebx
 
   mov eax, 0
   cmp pauseFlag, eax
   jne pause_play
-  
+
   cmp loseFlag, eax
   jne lose
+
+  cmp torpedosAwayFlag, eax
+  jne damn_the_torpedos
+
+try_the_keys:
+  mov ebx, submarineX
+  mov torpedoX, ebx
+  mov ebx, submarineY
+  mov torpedoY, ebx
+  mov eax, KeyPress   ;; detecting key press
+  cmp eax, 20h      ;; fire torpedo on space
+  jne body
+  mov torpedosAwayFlag, 1
+
+  ;; the torpedo has been fired
+damn_the_torpedos:
+  add torpedoX, 6   ;; making the torpedo move quickly
+
+body:
   ;; have the octopus spinning endlessly
   add rotation, 00003000h
   sub octopusX, 1
 
-try_mouse_stuff:
-  ; mov eax, MouseStatus.buttons  ;; detecting mouse input
+pause_it:
   mov eax, KeyDown
   cmp eax, 50h
-  jne try_the_keys
-  
+  jne sub_sub
+
+  ;; keeps the game paused and unpauses if necessary
 pause_play:
   mov pauseFlag, 1
   invoke BlackStarField
@@ -182,14 +202,9 @@ pause_play:
   mov pauseFlag, 0
   jmp done
 
-try_the_keys:
-  mov eax, KeyPress   ;; detecting key press
-  cmp eax, 20h      ;; fire torpedo on space
-  jne sub_sub
-  add torpedoX, 6   ;; making the torpedo move quickly
-  
 ;; submarine movement
 sub_sub:
+  mov eax, KeyPress   ;; detecting key press
   cmp eax, 41h    ;; A (go left)
   je go_left
   cmp eax, 44h    ;; D (go right)
@@ -214,18 +229,40 @@ go_down:
   mov eax, 4
   add submarineY, eax
   jmp draw_that_ish
-  
+
 go_up:
   mov eax, 4
   sub submarineY, eax
   jmp draw_that_ish
-  
+
 draw_that_ish:
   invoke BlackStarField   ;; clear screen
+  invoke BasicBlit, torpedoAddr, torpedoX, torpedoY
   invoke BasicBlit, submarineAddr, submarineX, submarineY   ;; new position and drawing of submarine
-  ; invoke BasicBlit, torpedoAddr, torpedoX, torpedoY
   invoke RotateBlit, octopusAddr, octopusX, octopusY, rotation    ;; new position of spinning octopus
-  ; invoke CheckIntersect, torpedoX, torpedoY, torpedoAddr, octopusX, octopusY, octopusAddr
+  invoke CheckIntersect, torpedoX, torpedoY, torpedoAddr, octopusX, octopusY, octopusAddr
+  cmp eax, 0
+  je submarine_intersect
+octopus_go_boom:
+  invoke nrandom, 450
+  mov octopusY, eax
+  mov eax, 700
+  mov octopusX, 700
+
+reset_torpedo:
+  mov ebx, submarineX
+  mov torpedoX, ebx
+  mov ebx, submarineY
+  mov torpedoY, ebx
+  mov torpedosAwayFlag, 0
+
+submarine_intersect:
+
+check_if_torpedo_gone:
+  mov ebx, torpedoX
+  cmp ebx, 650
+  jge reset_torpedo
+
   invoke CheckIntersect, submarineX, submarineY, submarineAddr, octopusX, octopusY, octopusAddr   ;; checking whether the two are colliding
   cmp eax, 0
   je done
@@ -242,7 +279,7 @@ lose:
 restart:
   mov octopusX, 700     ;; reset octopus
   mov submarineX, 100   ;; reset submarine
-  mov submarineY, 100     
+  mov submarineY, 100
   invoke GameInit
 
 done:
