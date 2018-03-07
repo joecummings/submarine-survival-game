@@ -145,8 +145,7 @@ GameInit PROC
   mov torpedosAwayFlag, 0
   mov eax, offset submarine
   invoke BasicBlit, submarineAddr, submarineX, submarineY
-  ; invoke BasicBlit, torpedoAddr, torpedoX, torpedoY
-  ; invoke BasicBlit, submarine1Addr, submarine1X, submarine1Y
+
   rdtsc
   invoke nseed, eax
   invoke nrandom, 450
@@ -155,7 +154,6 @@ GameInit PROC
 
 	ret         ;; Do not delete this line!!!
 GameInit ENDP
-
 
 GamePlay PROC USES ebx
 
@@ -244,8 +242,27 @@ draw_that_ish:
   invoke RotateBlit, octopusAddr, octopusX, octopusY, rotation    ;; new position of spinning octopus
   invoke CheckIntersect, torpedoX, torpedoY, torpedoAddr, octopusX, octopusY, octopusAddr
   cmp eax, 0
-  jne submarine_intersect
+  je submarine_intersect
+octopus_go_boom:
+  invoke nrandom, 450
+  mov octopusY, eax
+  mov eax, 700
+  mov octopusX, 700
+
+reset_torpedo:
+  mov ebx, submarineX
+  mov torpedoX, ebx
+  mov ebx, submarineY
+  mov torpedoY, ebx
+  mov torpedosAwayFlag, 0
+
 submarine_intersect:
+
+check_if_torpedo_gone:
+  mov ebx, torpedoX
+  cmp ebx, 650
+  jge reset_torpedo
+
   invoke CheckIntersect, submarineX, submarineY, submarineAddr, octopusX, octopusY, octopusAddr   ;; checking whether the two are colliding
   cmp eax, 0
   je done
