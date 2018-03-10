@@ -15,10 +15,17 @@ include lines.inc
 include trig.inc
 include blit.inc
 include game.inc
+
+include Z:\Users\joecummings\wine-masm\drive_c\masm32\include\windows.inc
+
 include Z:\Users\joecummings\wine-masm\drive_c\masm32\include\masm32.inc
 includelib Z:\Users\joecummings\wine-masm\drive_c\masm32\lib\masm32.lib
 include Z:\Users\joecummings\wine-masm\drive_c\masm32\include\user32.inc
 includelib Z:\Users\joecummings\wine-masm\drive_c\masm32\lib\user32.lib
+
+include Z:\Users\joecummings\wine-masm\drive_c\masm32\include\winmm.inc
+includelib Z:\Users\joecummings\wine-masm\drive_c\masm32\lib\winmm.lib
+
 
 ;; Has keycodes
 include keys.inc
@@ -78,6 +85,10 @@ include keys.inc
   score DWORD 0
   score_str BYTE "Score: %d", 0
   score_out BYTE 32 DUP (0)
+
+  ;; Sound byte for starting code
+  sonarSound BYTE "sonar_x.wav", 0
+  gameSound BYTE "Fast_Ace.wav", 0
 
 .CODE
 
@@ -205,6 +216,8 @@ VarToStr ENDP
 
 GameInit PROC
   ;; how will the screen look initially
+  ; invoke PlaySound, offset sonarSound, 0, SND_LOOP
+
   mov score, 0
   mov speedFlag, 1
   mov pauseFlag, 0
@@ -213,6 +226,8 @@ GameInit PROC
   mov eax, offset submarine
   invoke BackgroundBitmap
   invoke BasicBlit, submarineAddr, submarineX, submarineY
+
+  invoke PlaySound, offset gameSound, 0, SND_FILENAME OR SND_ASYNC OR SND_LOOP
 
   rdtsc
   invoke nseed, eax
@@ -325,7 +340,6 @@ draw_that_ish:
   invoke BlackStarField
   ; invoke BasicBlit, underwaterleftAddr, underwaterleftX, underwaterleftY   ;; clear screen
   invoke BackgroundBitmap
-  INVOKE VarToStr, score, OFFSET score_str, OFFSET score_out, 10, 425
   invoke BasicBlit, torpedoAddr, torpedoX, torpedoY
   invoke BasicBlit, submarineAddr, submarineX, submarineY   ;; new position and drawing of submarine
   invoke RotateBlit, octopusAddr, octopusX, octopusY, rotation    ;; new position of spinning octopus
@@ -333,6 +347,7 @@ draw_that_ish:
   invoke RotateBlit, octopus2Addr, octopus2X, octopus2Y, rotation
   invoke RotateBlit, octopus3Addr, octopus3X, octopus3Y, rotation
   invoke RotateBlit, octopus4Addr, octopus4X, octopus4Y, rotation
+  INVOKE VarToStr, score, OFFSET score_str, OFFSET score_out, 10, 425
   invoke CheckIntersect, torpedoX, torpedoY, torpedoAddr, octopusX, octopusY, octopusAddr
   cmp eax, 0
   je next1
@@ -488,6 +503,7 @@ next8:
   mov loseFlag, 1
   ; jmp lose
 lose:
+  ; invoke PlaySound, offset sonarSound, 0, SND_FILENAME OR SND_ASYNC
   invoke BlackStarField       ;; oh snap it is colliding
   invoke DrawStr, offset loseString, 175, 225, 0ffh   ;; display losing message
   invoke VarToStr, score, offset score_str, offset score_out, 175, 210 ;; display score
