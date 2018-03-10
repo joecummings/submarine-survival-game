@@ -78,6 +78,7 @@ include keys.inc
   loseFlag DWORD 0
   torpedosAwayFlag DWORD 0
   speedFlag DWORD 1
+  counterFlag DWORD 0
 
   ;; how much to rotate by
   rotation DWORD 0h
@@ -219,6 +220,7 @@ GameInit PROC
   ; invoke PlaySound, offset sonarSound, 0, SND_LOOP
 
   mov score, 0
+  mov counterFlag, 0
   mov speedFlag, 1
   mov pauseFlag, 0
   mov loseFlag, 0
@@ -247,12 +249,26 @@ GameInit PROC
   invoke BasicBlit, octopus3Addr, octopus3X, octopus3Y
   invoke BasicBlit, octopus4Addr, octopus4X, octopus4Y
 
-  INVOKE VarToStr, score, OFFSET score_str, OFFSET score_out, 10, 425
+  invoke VarToStr, score, offset score_str, offset score_out, 10, 425
 	ret         ;; Do not delete this line!!!
 GameInit ENDP
 
 GamePlay PROC USES ebx
 
+  ; LOCAL counter:DWORD
+  ; mov eax, 0
+  ; mov counter, eax
+
+  mov eax, 1
+  add counterFlag, eax
+  mov ebx, 10
+  cmp counterFlag, ebx
+  jl outta
+  add score, 1
+  mov ebx, 0
+  mov counterFlag, ebx
+
+outta:
   mov eax, 0
   cmp pauseFlag, eax
   jne pause_play
@@ -508,6 +524,7 @@ lose:
   invoke DrawStr, offset loseString, 175, 225, 0ffh   ;; display losing message
   invoke VarToStr, score, offset score_str, offset score_out, 175, 210 ;; display score
   add octopusX, 1   ;; stop the octopus movement
+  mov counterFlag, 0
   mov eax, KeyPress
   cmp eax, 52h
   je restart
