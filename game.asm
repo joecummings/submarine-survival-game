@@ -16,13 +16,12 @@ include trig.inc
 include blit.inc
 include game.inc
 
+;  all these files access new files
 include Z:\Users\joecummings\wine-masm\drive_c\masm32\include\windows.inc
-
 include Z:\Users\joecummings\wine-masm\drive_c\masm32\include\masm32.inc
 includelib Z:\Users\joecummings\wine-masm\drive_c\masm32\lib\masm32.lib
 include Z:\Users\joecummings\wine-masm\drive_c\masm32\include\user32.inc
 includelib Z:\Users\joecummings\wine-masm\drive_c\masm32\lib\user32.lib
-
 include Z:\Users\joecummings\wine-masm\drive_c\masm32\include\winmm.inc
 includelib Z:\Users\joecummings\wine-masm\drive_c\masm32\lib\winmm.lib
 
@@ -34,14 +33,17 @@ include keys.inc
 .DATA
 ;; declaring variables in memory to be used later in the program
 
+  ;; submarine object variables
   submarineX DWORD 100
   submarineY DWORD 300
   submarineAddr DWORD offset submarine
 
+  ;; torpedo object variables
   torpedoX DWORD 150
   torpedoY DWORD 150
   torpedoAddr DWORD offset torpedo
 
+  ;; army of octopi object variables
   octopusX DWORD 700
   octopusY DWORD 245
   octopusAddr DWORD offset octopus
@@ -57,46 +59,51 @@ include keys.inc
   octopus4X DWORD 750
   octopus4Y DWORD 245
   octopus4Addr DWORD offset octopus
+  big_octopusX DWORD 1500
+  big_octopusY DWORD 245
+  big_octopusAddr DWORD offset big_octopus
 
+  ;; background bitmap object variables
   underwaterleftX DWORD 426
   underwaterleftY DWORD 240
   underwaterleftAddr DWORD offset underwaterleft
-
-  underwaterrightX DWORD 1275
+  underwaterrightX DWORD 1278
   underwaterrightY DWORD 240
   underwaterrightAddr DWORD offset underwater
 
-  ;; Instructions
+  ;; game instructions
   moveString BYTE "Use W,A,S,D to move the submarine to avoid the octopi", 0
-  spaceString BYTE "Press space to fire the torpedo and destoy the octopi", 0
+  spaceString BYTE "Press Spacebar to fire the torpedo and destoy the octopi", 0
   pString BYTE "Press P to pause at any time", 0
+  infoString BYTE "Some octopi are worth more points than others -- but they are harder to kill", 0
   stayString BYTE "Try to stay alive for as long as possible and go for the high score!", 0
   enterString BYTE "Press Enter to continue", 0
-  ;; Try to stay alive for as long as possible and go for the high score!
 
-  ;; message to be displayed upon losing
+
+  ;; losing messages
   loseString BYTE "You lose! Press R to restart the game", 0
 
-  ;; Instructions
+  ;; pause instruction
   pauseString BYTE "Press U to resume the game at any time", 0
-  arrowString BYTE "Use W,A,S,D to navigate the submarine", 0
 
-  ;; flags for instructions
+  ;; flags to mark game states
   pauseFlag DWORD 0
   loseFlag DWORD 0
   torpedosAwayFlag DWORD 0
-  speedFlag DWORD 1
+  speedFlag DWORD 2
   counterFlag DWORD 0
   startedFlag DWORD 1
+  oneHitFlag DWORD 0
 
-  ;; how much to rotate by
+  ;; octopus rotation variable
   rotation DWORD 0h
 
+  ;; score and displaying score
   score DWORD 0
   score_str BYTE "Score: %d", 0
   score_out BYTE 32 DUP (0)
 
-  ;; Sound byte for starting code
+  ;; sounds for game
   sonarSound BYTE "sonar_x.wav", 0
   gameSound BYTE "Fast_Ace.wav", 0
 
@@ -182,28 +189,32 @@ done:
   ret
 CheckIntersect ENDP
 
-BackgroundBitmap PROC
+;; this sets a constant scrolling for the background
+BackgroundBitmap PROC USES ebx ecx
 
-; create the background bitmap (football field)
-	invoke BasicBlit, underwaterleftAddr, underwaterleftX, underwaterleftY 			;; creates the left side of the field based on coordinates given
-	mov ebx, underwaterleftX				;; moves the left side of the field's location to ebx
-	sub ebx, speedFlag 							;; subtracts 5 from the location of the left side to make it scroll right
-	mov underwaterleftX, ebx				;; moves the subtraction back to the x location
+  ;; create the first bitmap on the screen
+	invoke BasicBlit, underwaterleftAddr, underwaterleftX, underwaterleftY
+	mov ebx, underwaterleftX
+	sub ebx, speedFlag
+	mov underwaterleftX, ebx
 
-	invoke BasicBlit, underwaterrightAddr, underwaterrightX, underwaterrightY			;; creates the right side of the field based on coordinates given
-	mov ebx, underwaterrightX				;; moves the right side of the field's location to ebx
-	sub ebx, speedFlag						;; subtracts 5 from the location of the right side to make it scroll right
-	mov underwaterrightX, ebx				;; moves the subtraction back to the x location
+  ;; create the second bitmap off the screen
+	invoke BasicBlit, underwaterrightAddr, underwaterrightX, underwaterrightY
+	mov ebx, underwaterrightX
+	sub ebx, speedFlag
+	mov underwaterrightX, ebx
 
-	cmp underwaterleftX, -420				;; compares the left side of the field's x value to -340 (when it is about to exit the screen)
-	jnle next								;; if it is not equal to -340, it is not about to leave the screen, continue
-	mov ebx, 1278							;; if it is equal, move the x value to be 950 (cycles it to the right)
+  ;; check if the first bitmap is off the screen
+	cmp underwaterleftX, -426
+	jnle next
+  mov ebx, 1278
 	mov underwaterleftX, ebx
 
 next:
-	cmp underwaterrightX, -420				;; compares the right side of the field's x value to -340 (when it is about to exit the screen)
-	jnle away								;; if it is not equal to -340, it is not about to leave the screen, continue
-	mov ecx, 1278							;; if it is equal, move the x value to be 1600 (cycles it to the right)
+  ;; check if the second bitmap is off the screen
+	cmp underwaterrightX, -426
+	jnle away
+	mov ecx, 1278
 	mov underwaterrightX, ecx
 
 away:
@@ -211,36 +222,35 @@ away:
 	ret
 BackgroundBitmap ENDP
 
-VarToStr PROC Arg:DWORD, FormatStr:DWORD, OutStr:DWORD, x:DWORD, y:DWORD
-
-  push Arg
-  push FormatStr
-  push OutStr
+;; makes a variable into a string
+toString PROC var:DWORD, format_str:DWORD, out_str:DWORD, x:DWORD, y:DWORD
+  push var
+  push format_str
+  push out_str
   call wsprintf
   add esp, 12
-  invoke DrawStr, OutStr, x, y, 0ffh
-
+  invoke DrawStr, out_str, x, y, 0ffh
   ret
+toString ENDP
 
-VarToStr ENDP
-
+;; how will the screen look initially
 GameInit PROC
-  ;; how will the screen look initially
-  ; invoke PlaySound, offset sonarSound, 0, SND_LOOP
+
+  ;; reset all the flag variables
   mov score, 0
   mov counterFlag, 0
-  mov speedFlag, 1
+  mov speedFlag, 2
   mov pauseFlag, 0
   mov loseFlag, 0
   mov torpedosAwayFlag, 0
   mov eax, offset submarine
 
+  ;; clear the screen and draw the first two bitmap
   invoke BackgroundBitmap
-
   invoke BasicBlit, submarineAddr, submarineX, submarineY
-
   invoke PlaySound, offset gameSound, 0, SND_FILENAME OR SND_ASYNC OR SND_LOOP
 
+  ;; create random Y positions
   rdtsc
   invoke nseed, eax
   invoke nrandom, 450
@@ -253,13 +263,18 @@ GameInit PROC
   mov octopus3Y, eax
   invoke nrandom, 450
   mov octopus4Y, eax
+  invoke nrandom, 450
+  mov big_octopusY, eax
+  ;; draw all the sprites in the Y directions
   invoke BasicBlit, octopusAddr, octopusX, octopusY
   invoke BasicBlit, octopus1Addr, octopus1X, octopus1Y
   invoke BasicBlit, octopus2Addr, octopus2X, octopus2Y
   invoke BasicBlit, octopus3Addr, octopus3X, octopus3Y
   invoke BasicBlit, octopus4Addr, octopus4X, octopus4Y
+  invoke BasicBlit, big_octopusAddr, big_octopusX, big_octopusY
 
-  invoke VarToStr, score, offset score_str, offset score_out, 10, 425
+  ;; score
+  invoke toString, score, offset score_str, offset score_out, 10, 425
 	ret         ;; Do not delete this line!!!
 GameInit ENDP
 
@@ -269,20 +284,20 @@ GamePlay PROC USES ebx
   cmp startedFlag, eax
   je body_stuff
 starting_screen:
+  ;; instructions on how to play the game
   invoke BlackStarField
-  invoke DrawStr, offset moveString, 50, 200, 0ffh
-  invoke DrawStr, offset spaceString, 50, 220, 0ffh
-  invoke DrawStr, offset pString, 50, 240, 0ffh
-  invoke DrawStr, offset stayString, 50, 260, 0ffh
-  invoke DrawStr, offset enterString, 50, 350, 0ffh
+  invoke DrawStr, offset moveString, 10, 100, 0ffh
+  invoke DrawStr, offset spaceString, 10, 130, 0ffh
+  invoke DrawStr, offset pString, 10, 160, 0ffh
+  invoke DrawStr, offset stayString, 10, 220, 0ffh
+  invoke DrawStr, offset infoString, 10, 190, 0ffh
+  invoke DrawStr, offset enterString, 220, 350, 0ffh
   mov eax, KeyPress
   cmp eax, 0Dh
   jne done
   mov startedFlag, 0
 
-  ; LOCAL counter:DWORD
-  ; mov eax, 0
-  ; mov counter, eax
+;; checking the basic flags
 body_stuff:
   mov eax, 1
   add counterFlag, eax
@@ -293,6 +308,7 @@ body_stuff:
   mov ebx, 0
   mov counterFlag, ebx
 
+;; is it paused??
 outta:
   mov eax, 0
   cmp pauseFlag, eax
@@ -304,6 +320,7 @@ outta:
   cmp torpedosAwayFlag, eax
   jne damn_the_torpedos
 
+;; fire the torpdo
 try_the_keys:
   mov ebx, submarineX
   mov torpedoX, ebx
@@ -314,7 +331,7 @@ try_the_keys:
   jne body
   mov torpedosAwayFlag, 1
 
-  ;; the torpedo has been fired
+;; the torpedo has been fired
 damn_the_torpedos:
   add torpedoX, 10   ;; making the torpedo move quickly
 
@@ -327,6 +344,7 @@ body:
   sub octopus2X, eax
   sub octopus3X, eax
   sub octopus4X, eax
+  sub big_octopusX, eax
 
 pause_it:
   mov eax, KeyDown
@@ -388,7 +406,8 @@ draw_that_ish:
   invoke RotateBlit, octopus2Addr, octopus2X, octopus2Y, rotation
   invoke RotateBlit, octopus3Addr, octopus3X, octopus3Y, rotation
   invoke RotateBlit, octopus4Addr, octopus4X, octopus4Y, rotation
-  INVOKE VarToStr, score, OFFSET score_str, OFFSET score_out, 10, 425
+  invoke RotateBlit, big_octopusAddr, big_octopusX, big_octopusY, rotation
+  INVOKE toString, score, OFFSET score_str, OFFSET score_out, 10, 425
   invoke CheckIntersect, torpedoX, torpedoY, torpedoAddr, octopusX, octopusY, octopusAddr
   cmp eax, 0
   je next1
@@ -411,10 +430,16 @@ next3:
 next4:
   invoke CheckIntersect, torpedoX, torpedoY, torpedoAddr, octopus3X, octopus3Y, octopus3Addr
   cmp eax, 0
-  je submarine_intersect
+  je next44
   jmp octopus3_go_boom
+next44:
+  invoke CheckIntersect, torpedoX, torpedoY, torpedoAddr, big_octopusX, big_octopusY, big_octopusAddr
+  cmp eax, 0
+  je submarine_intersect
+  jmp big_go_boom
+
 octopus_go_boom:
-  inc speedFlag
+  ; add speedFlag, 2
   mov eax, 10
   add score, eax
   invoke nrandom, 450
@@ -424,7 +449,7 @@ octopus_go_boom:
   jmp reset_torpedo
 
 octopus1_go_boom:
-  inc speedFlag
+  ; add speedFlag, 2
   mov eax, 10
   add score, eax
   invoke nrandom, 450
@@ -434,7 +459,7 @@ octopus1_go_boom:
   jmp reset_torpedo
 
 octopus2_go_boom:
-  inc speedFlag
+  add speedFlag, 2
   mov eax, 10
   add score, eax
   invoke nrandom, 450
@@ -444,7 +469,7 @@ octopus2_go_boom:
   jmp reset_torpedo
 
 octopus3_go_boom:
-  inc speedFlag
+  ; inc speedFlag
   mov eax, 10
   add score, eax
   invoke nrandom, 450
@@ -454,13 +479,26 @@ octopus3_go_boom:
   jmp reset_torpedo
 
 octopus4_go_boom:
-  inc speedFlag
+  add speedFlag, 2
   mov eax, 10
   add score, eax
   invoke nrandom, 450
   mov octopus4Y, eax
   mov eax, 700
   mov octopus4X, 700
+  jmp reset_torpedo
+
+big_go_boom:
+  inc oneHitFlag
+  cmp oneHitFlag, 1
+  je reset_torpedo
+  mov eax, 30
+  mov oneHitFlag, 0
+  add score, eax
+  invoke nrandom, 450
+  mov big_octopusY, eax
+  mov eax, 2500
+  mov big_octopusX, eax
   jmp reset_torpedo
 
 reset_torpedo:
@@ -472,6 +510,7 @@ reset_torpedo:
 
 submarine_intersect:
 
+;; all of these checks are if the octopi are off the screen
 check_if_octopus_gone:
   mov ebx, octopusX
   cmp ebx, 0
@@ -503,12 +542,19 @@ oct3_gone:
 oct4_gone:
   mov ebx, octopus4X
   cmp ebx, 0
-  jge check_if_torpedo_gone
+  jge big_gone
   mov octopus4X, 850
   invoke nrandom, 450
   mov octopus4Y, eax
+big_gone:
+  mov ebx, big_octopusX
+  cmp ebx, 0
+  jge check_if_torpedo_gone
+  mov big_octopusX, 2500
+  invoke nrandom, 450
+  mov big_octopusY, eax
 
-
+;; check if the torpedo went off the screen
 check_if_torpedo_gone:
   mov ebx, torpedoX
   cmp ebx, 650
@@ -540,14 +586,19 @@ next7:
 next8:
   invoke CheckIntersect, submarineX, submarineY, submarineAddr, octopus4X, octopus4Y, octopus4Addr   ;; checking whether the two are colliding
   cmp eax, 0
+  je next9
+  mov loseFlag, 1
+next9:
+  invoke CheckIntersect, submarineX, submarineY, submarineAddr, big_octopusX, big_octopusY, big_octopusAddr
+  cmp eax, 0
   je done
   mov loseFlag, 1
-  ; jmp lose
+
 lose:
-  ; invoke PlaySound, offset sonarSound, 0, SND_FILENAME OR SND_ASYNC
+  ;; you lost!!!
   invoke BlackStarField       ;; oh snap it is colliding
-  invoke DrawStr, offset loseString, 175, 225, 0ffh   ;; display losing message
-  invoke VarToStr, score, offset score_str, offset score_out, 175, 210 ;; display score
+  invoke DrawStr, offset loseString, 175, 190, 0ffh   ;; display losing message
+  invoke toString, score, offset score_str, offset score_out, 275, 250 ;; display score
   add octopusX, 1   ;; stop the octopus movement
   mov counterFlag, 0
   mov eax, KeyPress
@@ -555,12 +606,14 @@ lose:
   je restart
   jmp done
 
+;; restart the game
 restart:
   mov octopusX, 700     ;; reset octopus
   mov octopus1X, 800
   mov octopus2X, 850
   mov octopus3X, 900
   mov octopus4X, 1000
+  mov big_octopusX, 2500
   mov submarineX, 100   ;; reset submarine
   mov submarineY, 300
   invoke GameInit

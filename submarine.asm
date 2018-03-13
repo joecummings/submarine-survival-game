@@ -7,7 +7,7 @@
       .586
       .MODEL FLAT,STDCALL
       .STACK 4096
-      option casemap :none  
+      option casemap :none
 
 include stars.inc
 include lines.inc
@@ -145,7 +145,7 @@ include keys.inc
 ; 	BYTE 0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh
 ; 	BYTE 0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh
 ; 	BYTE 0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh
-submarine EECS205BITMAP <63, 41, 255,, offset submarine + sizeof submarine>
+submarine EECS205BITMAP <63, 41, 000h,, offset submarine + sizeof submarine>
 	BYTE 000h,000h,000h,000h,000h,000h,000h,000h,000h,000h,000h,000h,000h,000h,000h,000h
 	BYTE 000h,000h,000h,000h,000h,000h,000h,000h,000h,000h,000h,000h,000h,000h,000h,000h
 	BYTE 000h,000h,000h,000h,000h,000h,000h,000h,000h,000h,000h,000h,000h,000h,000h,000h
@@ -310,5 +310,5 @@ submarine EECS205BITMAP <63, 41, 255,, offset submarine + sizeof submarine>
 	BYTE 000h,000h,000h,000h,000h,000h,000h
 
 	.CODE
-	
+
 	END
