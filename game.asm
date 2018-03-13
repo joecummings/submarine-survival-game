@@ -66,6 +66,14 @@ include keys.inc
   underwaterrightY DWORD 240
   underwaterrightAddr DWORD offset underwater
 
+  ;; Instructions
+  moveString BYTE "Use W,A,S,D to move the submarine to avoid the octopi", 0
+  spaceString BYTE "Press space to fire the torpedo and destoy the octopi", 0
+  pString BYTE "Press P to pause at any time", 0
+  stayString BYTE "Try to stay alive for as long as possible and go for the high score!", 0
+  enterString BYTE "Press Enter to continue", 0
+  ;; Try to stay alive for as long as possible and go for the high score!
+
   ;; message to be displayed upon losing
   loseString BYTE "You lose! Press R to restart the game", 0
 
@@ -79,6 +87,7 @@ include keys.inc
   torpedosAwayFlag DWORD 0
   speedFlag DWORD 1
   counterFlag DWORD 0
+  startedFlag DWORD 1
 
   ;; how much to rotate by
   rotation DWORD 0h
@@ -209,7 +218,7 @@ VarToStr PROC Arg:DWORD, FormatStr:DWORD, OutStr:DWORD, x:DWORD, y:DWORD
   push OutStr
   call wsprintf
   add esp, 12
-  INVOKE DrawStr, OutStr, x, y, 0ffh
+  invoke DrawStr, OutStr, x, y, 0ffh
 
   ret
 
@@ -218,7 +227,6 @@ VarToStr ENDP
 GameInit PROC
   ;; how will the screen look initially
   ; invoke PlaySound, offset sonarSound, 0, SND_LOOP
-
   mov score, 0
   mov counterFlag, 0
   mov speedFlag, 1
@@ -226,7 +234,9 @@ GameInit PROC
   mov loseFlag, 0
   mov torpedosAwayFlag, 0
   mov eax, offset submarine
+
   invoke BackgroundBitmap
+
   invoke BasicBlit, submarineAddr, submarineX, submarineY
 
   invoke PlaySound, offset gameSound, 0, SND_FILENAME OR SND_ASYNC OR SND_LOOP
@@ -255,13 +265,28 @@ GameInit ENDP
 
 GamePlay PROC USES ebx
 
+  mov eax, 0
+  cmp startedFlag, eax
+  je body_stuff
+starting_screen:
+  invoke BlackStarField
+  invoke DrawStr, offset moveString, 50, 200, 0ffh
+  invoke DrawStr, offset spaceString, 50, 220, 0ffh
+  invoke DrawStr, offset pString, 50, 240, 0ffh
+  invoke DrawStr, offset stayString, 50, 260, 0ffh
+  invoke DrawStr, offset enterString, 50, 350, 0ffh
+  mov eax, KeyPress
+  cmp eax, 0Dh
+  jne done
+  mov startedFlag, 0
+
   ; LOCAL counter:DWORD
   ; mov eax, 0
   ; mov counter, eax
-
+body_stuff:
   mov eax, 1
   add counterFlag, eax
-  mov ebx, 10
+  mov ebx, 25
   cmp counterFlag, ebx
   jl outta
   add score, 1
