@@ -7,7 +7,7 @@
       .586
       .MODEL FLAT,STDCALL
       .STACK 4096
-      option casemap :none  
+      option casemap :none
 
 include stars.inc
 include lines.inc
@@ -19,7 +19,7 @@ include keys.inc
 
 .DATA
 
-octopus EECS205BITMAP <50, 39, 255,, offset octopus + sizeof octopus>
+octopus EECS205BITMAP <50, 39, 000h,, offset octopus + sizeof octopus>
 	BYTE 000h,000h,000h,000h,000h,000h,000h,000h,000h,000h,000h,000h,000h,000h,000h,000h
 	BYTE 000h,000h,000h,000h,000h,000h,000h,000h,000h,000h,000h,000h,000h,000h,000h,000h
 	BYTE 000h,000h,000h,000h,000h,000h,000h,000h,000h,000h,000h,000h,000h,000h,000h,000h

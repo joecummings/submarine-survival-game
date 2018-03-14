@@ -19,7 +19,7 @@ include keys.inc
 
 .DATA
 
-underwater EECS205BITMAP <852, 480, 255,, offset underwater + sizeof underwater>
+underwater EECS205BITMAP <852, 480, 000h,, offset underwater + sizeof underwater>
 	BYTE 005h,005h,005h,005h,005h,005h,005h,005h,005h,005h,005h,005h,005h,005h,005h,005h
 	BYTE 005h,005h,005h,005h,005h,005h,005h,005h,005h,005h,005h,005h,005h,005h,005h,005h
 	BYTE 005h,005h,005h,005h,005h,005h,005h,005h,005h,005h,005h,009h,009h,009h,009h,009h
